@@ -1,5 +1,7 @@
 # oShelf
 
+![oShelf carrying an image](preview.png)
+
 **Park anything. Pick it up anywhere.**
 
 A small, temporary shelf at the right edge of your Omarchy desktop. Drop something
@@ -102,7 +104,5 @@ python3 tests/metadata_test.py
 
 See [verification](docs/verification.md), [architecture](docs/architecture.md),
 and [marketplace preparation](docs/marketplace.md).
-
-![oShelf carrying an image](preview.png)
 
 MIT licensed. No telemetry, clipboard monitoring, network access, or content logs.
