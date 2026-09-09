@@ -10,7 +10,7 @@ FocusScope {
     signal pickedUp()
     signal settled()
     width: ListView.view ? ListView.view.width : 328
-    height: entry.thumbnail ? 218 : entry.kind === "text" ? 152 : 112
+    height: entry.thumbnail ? 218 : entry.thumbs && entry.thumbs.length ? 192 : entry.kind === "text" ? 152 : 112
     activeFocusOnTab: true
     Accessible.role: Accessible.ListItem
     Accessible.name: entry.title + ". " + entry.detail
@@ -85,6 +85,39 @@ FocusScope {
             font.family: Style.fontFamily
             font.pixelSize: 11
         }
+        Row {
+            x: 18; y: 76
+            visible: !!root.entry.thumbs && !!root.entry.thumbs.length
+            spacing: 8
+            Repeater {
+                model: root.entry.thumbs ? root.entry.thumbs : []
+                Thumbnail {
+                    width: 64; height: 64
+                    rounded: true; radius: 8
+                    quiet: true
+                    borderColor: Util.alpha(Color.foreground, 0.08)
+                    source: modelData
+                }
+            }
+            Rectangle {
+                visible: (root.entry.thumbMore || 0) > 0
+                width: 64; height: 64
+                radius: 8
+                color: Qt.tint(Color.background, Util.alpha(Color.foreground, 0.05))
+                border.width: 1
+                border.color: Util.alpha(Color.foreground, 0.10)
+                Text {
+                    anchors.centerIn: parent
+                    text: "+" + root.entry.thumbMore
+                    textFormat: Text.PlainText
+                    color: Color.foreground
+                    opacity: 0.5
+                    font.family: Style.fontFamily
+                    font.pixelSize: 14
+                    font.weight: Font.Medium
+                }
+            }
+        }
         MouseArea {
             id: pointer
             anchors.fill: parent
@@ -98,7 +131,7 @@ FocusScope {
             }
             drag.onActiveChanged: if (drag.active) nativeDrag.start(card, root.entry.mime)
         }
-        Action {
+        ShelfAction {
             anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 6
             label: "Remove"
             visible: (pointer.containsMouse || root.activeFocus) && !root.store.busy

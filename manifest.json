@@ -2,10 +2,14 @@
   "schemaVersion": 1,
   "id": "io.github.i12bp8.oshelf",
   "name": "oShelf",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "author": "i12bp8",
   "description": "Park anything. Pick it up anywhere.",
   "license": "MIT",
-  "kinds": ["service"],
-  "entryPoints": { "service": "Service.qml" }
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Service.qml"
+  }
 }

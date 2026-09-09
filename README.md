@@ -53,15 +53,16 @@ Drag cards onto one another to reorder. Hover or focus a card to reveal **Remove
 you remove it; original files are never moved or deleted.
 
 **Escape** collapses. **Tab** focuses controls/cards; **Delete** removes a focused
-card; **Ctrl+Up/Down** reorders it; **Ctrl+Backspace** clears. For an optional launcher
-or shortcut, use `omarchy-shell oshelf show`. No shortcut is installed automatically.
+card; **Ctrl+Up/Down** reorders it; **PageUp/PageDown** scroll; **Ctrl+Backspace**
+clears. For an optional launcher or shortcut, use `omarchy-shell oshelf show`.
+No shortcut is installed automatically.
 
 ## What can be carried
 
 | Source | Representation | Transfer |
 | --- | --- | --- |
 | Local file / folder | Filename / folder card | Original local file URI |
-| Multiple local files | One bundle | Original URI list |
+| Multiple local files | One bundle, mini thumbnails for image files | Original URI list |
 | PNG, JPEG, WebP data | Thumbnail when small enough | Original encoded image bytes |
 | Browser image | Image or domain card, depending on the browser's offer | Offered image bytes and/or URL |
 | Web link | Domain and URL | Offered URL and text formats |

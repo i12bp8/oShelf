@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import qs.Commons
@@ -82,6 +83,18 @@ PanelWindow {
             Keys.onPressed: event => {
                 if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_Backspace) {
                     root.store.clear(); event.accepted = true;
+                } else if (event.key === Qt.Key_PageDown) {
+                    list.contentY = Math.min(list.contentHeight - list.height, list.contentY + list.height * 0.85);
+                    event.accepted = true;
+                } else if (event.key === Qt.Key_PageUp) {
+                    list.contentY = Math.max(0, list.contentY - list.height * 0.85);
+                    event.accepted = true;
+                } else if (event.key === Qt.Key_End) {
+                    list.contentY = Math.max(0, list.contentHeight - list.height);
+                    event.accepted = true;
+                } else if (event.key === Qt.Key_Home) {
+                    list.contentY = 0;
+                    event.accepted = true;
                 }
             }
             Text {
@@ -101,7 +114,7 @@ PanelWindow {
             }
             ListView {
                 id: list
-                x: 20; y: 78; width: parent.width - 40; height: parent.height - 137
+                x: 20; y: 78; width: parent.width - 46; height: parent.height - 137
                 spacing: 10
                 clip: true
                 model: root.store.model
@@ -112,6 +125,29 @@ PanelWindow {
                     onSettled: { if (!root.engaged) closeTimer.restart(); }
                 }
                 move: Transition { NumberAnimation { properties: "x,y"; duration: 150; easing.type: Easing.OutCubic } }
+                ScrollBar.vertical: ScrollBar {
+                    id: scrollBar
+                    policy: ScrollBar.AsNeeded
+                    padding: 0
+                    background: Item {}
+                    contentItem: Rectangle {
+                        radius: 2.5
+                        color: Util.alpha(Color.foreground, scrollBar.pressed ? 0.55 : 0.30)
+                        visible: scrollBar.visible
+                    }
+                }
+                WheelHandler {
+                    id: wheel
+                    acceptedModifiers: Qt.NoModifier
+                    onWheel: (event) => {
+                        var delta = event.pixelDelta.y;
+                        delta = delta !== 0 ? delta * 3 : event.angleDelta.y / 120 * 132;
+                        list.contentY = Math.max(0, Math.min(
+                            list.contentHeight - list.height,
+                            list.contentY - delta));
+                        event.accepted = true;
+                    }
+                }
             }
             Column {
                 visible: !root.store.items.length
@@ -139,7 +175,7 @@ PanelWindow {
                 color: Color.foreground; opacity: root.store.message ? 0.85 : 0.45
                 font.family: Style.fontFamily; font.pixelSize: 10
             }
-            Action {
+            ShelfAction {
                 anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 12
                 label: root.store.items.length ? "Clear" : "Close"
                 enabled: !root.store.busy

@@ -101,6 +101,24 @@ Item {
                         item.kind = info[0].kind;
                         item.detail = item.missing ? "Reference unavailable" : item.kind === "folder" ? "Folder reference" : "File reference";
                         item.thumbnail = info[0].image ? "file://" + item.paths[0].split("/").map(encodeURIComponent).join("/") : "";
+                        item.thumbs = [];
+                        item.thumbMore = 0;
+                    } else if (info.length === item.paths.length) {
+                        var thumbs = [], images = 0;
+                        for (var i = 0; i < info.length; i++) {
+                            if (info[i].exists && info[i].image) {
+                                images++;
+                                if (thumbs.length < 4)
+                                    thumbs.push("file://" + item.paths[i].split("/").map(encodeURIComponent).join("/"));
+                            }
+                        }
+                        if (images > 4) {
+                            thumbs = thumbs.slice(0, 3);
+                            item.thumbMore = images - 3;
+                        } else {
+                            item.thumbMore = 0;
+                        }
+                        item.thumbs = thumbs;
                     }
                     rows.setProperty(root.items.indexOf(item), "entry", Object.assign({}, item));
                     root.items = root.items.slice();
