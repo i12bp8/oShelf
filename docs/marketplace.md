@@ -1,27 +1,25 @@
-# Marketplace preparation
+# Marketplace submission
 
-One plugin lives at the repository root, with a schemaVersion 1 manifest, a
-non-reserved namespaced ID, README, MIT license, safe installation/removal, and
-explicit dependencies. The plugin requires a local native Qt build and should be listed as manual setup.
-Omarchy does not execute build hooks; the README documents the explicit build step.
+The plugin lives at the repository root: `manifest.json` (schemaVersion 1),
+README, MIT license, and a real UI capture as `preview.png`. Omarchy runs no
+build hooks, so the local native Qt build step documented in the README is
+required before the plugin can run.
 
-The expected public repository is `https://github.com/i12bp8/oShelf`. Confirm the
-owner and final repository URL before publishing; this checkout does not establish
-that a public repository or listing exists. Check permanent ID availability for
-`io.github.i12bp8.oshelf` before the first submission.
+Listing metadata:
 
-Suggested category: **Productivity**. Tags: **quickshell, workspaces, system**.
-Use a real, content-safe root `preview.png` when available. The README includes
-screenshot and GIF placeholders; do not present mockups as verified screenshots.
+- Repository: `https://github.com/i12bp8/oShelf`
+- ID: `io.github.i12bp8.oshelf` (namespaced, not used by other listings)
+- Category: **Productivity**
+- Tags: **quickshell, workspaces, system**
 
 Before submitting, run `omarchy plugin validate .`, the payload/metadata tests,
-and the live transfer tests on the target Omarchy release. Review the exact commit
-that will be submitted. Public automated checks and maintainer review determine
-acceptance; passing local manifest validation cannot guarantee a listing.
+and the live transfer tests on the target Omarchy release. Public automated
+checks and maintainer review decide acceptance; passing local validation cannot
+guarantee a listing.
 
-Disclose these capabilities in maintainer notes:
+Disclose these capabilities in the maintainer notes:
 
-- Overlay layer-shell surfaces with a small masked input region.
+- Overlay layer-shell surface with a small masked input region.
 - In-memory retention of user-dropped MIME bytes and local file references.
 - A locally compiled C++ Qt component for safe native drag lifetime.
 - A fixed Python helper for local filesystem metadata; no shell interpolation.

@@ -19,8 +19,6 @@ and Python 3 (included with Omarchy). Building the small native Qt drag componen
 requires `gcc`, `make`, `pkgconf`, `qt6-base`, and `qt6-declarative`. No extra Python
 packages or privileged installer. Earlier Omarchy releases without the shell plugin host are unsupported.
 
-Once this repository is published:
-
 ```sh
 omarchy plugin add https://github.com/i12bp8/oShelf
 make -C ~/.config/omarchy/plugins/io.github.i12bp8.oshelf
@@ -104,7 +102,6 @@ python3 tests/metadata_test.py
 See [verification](docs/verification.md), [architecture](docs/architecture.md),
 and [marketplace preparation](docs/marketplace.md).
 
-![oShelf carrying an image](docs/shelf.png)
-<!-- Motion: add docs/demo.gif showing park → workspace switch → pickup. -->
+![oShelf carrying an image](preview.png)
 
 MIT licensed. No telemetry, clipboard monitoring, network access, or content logs.
