@@ -1,0 +1,17 @@
+import QtQuick.tooling 1.2
+Module {
+    Component {
+        name: "NativeDrag"
+        prototype: "QObject"
+        exports: ["OShelf.Native/NativeDrag 1.0"]
+        exportMetaObjectRevisions: [256]
+        Property { name: "active"; type: "bool"; isReadonly: true; notify: "activeChanged" }
+        Signal { name: "activeChanged" }
+        Signal { name: "finished"; Parameter { name: "action"; type: "int" } }
+        Method {
+            name: "start"
+            Parameter { name: "item"; type: "QQuickItem"; isPointer: true }
+            Parameter { name: "formats"; type: "QVariantMap" }
+        }
+    }
+}

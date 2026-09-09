@@ -1,0 +1,3 @@
+module OShelf.Native
+plugin oshelf-native
+typeinfo plugins.qmltypes
