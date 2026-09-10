@@ -10,9 +10,9 @@ Park that file. Save your train of thought. Pick it up where you need it.
 
 **[Try the interactive demo →](https://i12bp8.github.io/oShelf/)** · [Install](#install) · [Make it yours](#make-it-yours) · [User guide](docs/usage.md)
 
-[![MIT License](https://img.shields.io/badge/license-MIT-d2ed9a?style=flat-square&labelColor=1b2215)](LICENSE)
-[![Omarchy Quattro](https://img.shields.io/badge/made_for-Omarchy_Quattro-d2ed9a?style=flat-square&labelColor=1b2215)](https://omarchy.org/)
-[![Website](https://img.shields.io/badge/play-the_demo-d2ed9a?style=flat-square&labelColor=1b2215)](https://i12bp8.github.io/oShelf/)
+[![MIT License](https://img.shields.io/badge/license-MIT-ffffff?style=flat-square&labelColor=000000)](LICENSE)
+[![Omarchy Quattro](https://img.shields.io/badge/made_for-Omarchy_Quattro-ffffff?style=flat-square&labelColor=000000)](https://omarchy.org/)
+[![Website](https://img.shields.io/badge/play-the_demo-ffffff?style=flat-square&labelColor=000000)](https://i12bp8.github.io/oShelf/)
 
 [![Interactive oShelf browser demo showing files parked beside a desktop window](site/demo.png)](https://i12bp8.github.io/oShelf/#playground)
 
@@ -70,8 +70,19 @@ existing installation.
 After plugin or Qt updates, rebuild in the installed directory and restart the
 shell after finishing any active transfer. Reloading clears temporary shelf items.
 
+## Uninstall
+
+```sh
+omarchy plugin remove io.github.i12bp8.oshelf
+```
+
+Or run `./scripts/uninstall.sh` from a local checkout. No shortcuts, persistent
+payload files, or background service remain. Your optional
+`~/.config/omarchy/oshelf.json` preferences are kept for a future reinstall;
+remove that file separately if you want to forget them.
+
 <details>
-<summary><strong>Optional shortcuts & removal</strong></summary>
+<summary><strong>Optional shortcuts</strong></summary>
 
 Open the shelf from a launcher or your own keybinding:
 
@@ -82,15 +93,6 @@ omarchy-shell oshelf settings
 ```
 
 No shortcut is installed automatically.
-
-Remove the plugin:
-
-```sh
-omarchy plugin remove io.github.i12bp8.oshelf
-```
-
-Your preferences in `~/.config/omarchy/oshelf.json` are retained for a future
-reinstall. Remove that file separately if you want to forget them.
 
 </details>
 
