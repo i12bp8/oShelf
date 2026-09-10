@@ -95,6 +95,12 @@ placement, guided playback, collapsed focus behavior, and reduced motion, with n
 JavaScript exceptions. Desktop and mobile screenshots were visually reviewed.
 The page has no third-party fonts, scripts, telemetry, or required build step.
 
+The monochrome redesign also passed at 320, 700, 1024, and 1440 px, with explicit
+source/shelf nonoverlap checks for every placement. Real browser drag round trips
+passed on all three edges, along with keyboard park/pickup, reset restoring right
+placement, and stopping pending guided-demo actions. Page background is asserted
+to be pure black. Cards animate opacity only to keep drag hit targets stationary.
+
 ## Remaining compatibility coverage
 
 The automated receiver is a separate Qt Widgets process. Real browser image

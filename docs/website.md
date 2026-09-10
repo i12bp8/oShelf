@@ -11,6 +11,12 @@ and keyboard, workspace switching, three shelf placements, and a cancellable gui
 flow. It is explicitly labeled as a browser simulation, not a native OS recording.
 The narrow-screen demo stacks its windows for usable touch targets.
 
+The visual design uses an OLED-black page, bold sans-serif headings, white controls,
+and gray surfaces. Source and shelf occupy separate CSS grid regions in every
+placement, preventing overlap. The mobile view stacks them without shrinking the
+controls. Reset restores items, workspace, placement, and playback state; Stop demo
+cancels the pending steps. Draggable cards fade in without moving their hit targets.
+
 Serve locally with `python3 -m http.server 8000 --directory site`. GitHub Pages is
 published from the `gh-pages` branch, which contains only the contents of `site/`.
 To update it, publish the reviewed site files to that branch after updating main.
@@ -26,7 +32,10 @@ OSHELF_PLAYWRIGHT=/tmp/oshelf-site-tools/node_modules/playwright/index.mjs node 
 
 The test uses installed Chromium, creates a local server, and verifies dragging
 in/out, click delivery, retained cards, placement, the guided tour, responsive
-layouts, reduced motion, and JavaScript errors. Set `OSHELF_SITE_CAPTURE=1` to
+layouts, reduced motion, and JavaScript errors. Regression checks cover 320, 390,
+700, 768, 1024, and 1440 px widths, nonoverlapping panel geometry, real drag round
+trips on all edges, keyboard delivery, complete reset, and playback cancellation.
+Set `OSHELF_SITE_CAPTURE=1` to
 regenerate `site/demo.png`, `site/social.png`, and temporary review screenshots.
 
 README and social previews are screenshots of this browser demo. `preview.png`
