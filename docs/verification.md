@@ -90,16 +90,15 @@ appearing in the shell log. Browser/GTK and multi-monitor coverage remains open.
 ## Website checks
 
 `tests/site.mjs` passed in Chromium at desktop, tablet (768 px), and phone (390 px)
-widths. It exercises real browser drag-in/drag-out, button delivery, retained cards,
-placement, guided playback, collapsed focus behavior, and reduced motion, with no
+widths. It seeks the scripted desktop animation through its timeline (closed shelf,
+two cards parked, workspace switch, both deliveries), checks pause and scrubber
+behavior, autoplay on scroll, responsive shelf geometry, and reduced motion, with no
 JavaScript exceptions. Desktop and mobile screenshots were visually reviewed.
 The page has no third-party fonts, scripts, telemetry, or required build step.
 
-The monochrome redesign also passed at 320, 700, 1024, and 1440 px, with explicit
-source/shelf nonoverlap checks for every placement. Real browser drag round trips
-passed on all three edges, along with keyboard park/pickup, reset restoring right
-placement, and stopping pending guided-demo actions. Page background is asserted
-to be pure black. Cards animate opacity only to keep drag hit targets stationary.
+The monochrome redesign also passed at 320, 700, 1024, and 1440 px, with the shelf
+asserted to stay inside the desktop frame at every width. Page background is
+asserted to be pure black.
 
 ## Remaining compatibility coverage
 

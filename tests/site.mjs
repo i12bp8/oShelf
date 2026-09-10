@@ -26,37 +26,63 @@ try {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto(base);
   assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor),'rgb(0, 0, 0)');
-  await page.locator('[data-park="image"]').click();
-  assert.equal(await page.locator('.demo-card').count(),1);
-  await page.locator('[data-workspace="2"]').click();
-  await page.locator('.demo-card button').click();
-  assert.equal(await page.locator('.delivered-item').count(),1);
-  assert.equal(await page.locator('.demo-card').count(),1,'Pickup must retain the card');
-  await page.locator('#collapse').click();
-  assert.equal(await page.locator('#shelf').evaluate(el => el.inert),true);
-  await page.locator('#edge-handle').click();
-  for (const edge of ['left','bottom','right']) {
-    await page.locator(`button[data-edge="${edge}"]`).click();
-    await page.waitForTimeout(350);
-    const fits = await page.evaluate(() => {
+  await page.waitForFunction(() => window.oshelfDemo && window.oshelfDemo.duration > 0);
+  await page.evaluate(() => window.oshelfDemo.pause());
+  await page.evaluate(() => window.oshelfDemo.seek(0));
+  assert.equal(await page.locator('#shelf').evaluate(el => el.classList.contains('closed')),true,'Shelf starts closed');
+  assert.equal(await page.locator('.os-card').count(),0);
+  const cursorCheck = await page.evaluate(() => {
+    window.oshelfDemo.seek(1.3);
+    const match = document.querySelector('#cursor').style.transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+    const tile = document.querySelector('[data-park="cover"]');
+    const scale = parseFloat(getComputedStyle(document.querySelector('#stage')).getPropertyValue('--stage-scale'));
+    const desktop = document.querySelector('#desktop').getBoundingClientRect();
+    const rect = tile.getBoundingClientRect();
+    const x = (rect.left + rect.width / 2 - desktop.left) / scale, y = (rect.top + rect.height / 2 - desktop.top) / scale;
+    return {near: !!match && Math.hypot(Number(match[1]) - x, Number(match[2]) - y) < 6, ghost: document.querySelector('#ghost').classList.contains('visible'), label: document.querySelector('#ghost').textContent.trim()};
+  });
+  assert.equal(cursorCheck.near,true,'Cursor reaches the dragged tile');
+  assert.equal(cursorCheck.ghost,true,'Drag ghost is visible while dragging');
+  assert.equal(cursorCheck.label,'cover.png','Ghost shows the dragged file');
+  await page.evaluate(() => window.oshelfDemo.seek(5.2));
+  assert.equal(await page.locator('.os-card').count(),2,'Two cards parked mid-demo');
+  assert.equal(await page.locator('.delivered-item').count(),0);
+  assert.equal(await page.locator('#desktop').getAttribute('data-workspace'),'1');
+  assert.equal(await page.locator('#shelf').evaluate(el => el.classList.contains('closed')),false,'Shelf opens during the drag');
+  await page.evaluate(() => window.oshelfDemo.seek(8));
+  assert.equal(await page.locator('.delivered-item').count(),1,'First item delivered');
+  assert.equal(await page.locator('#desktop').getAttribute('data-workspace'),'2','Demo switches workspace');
+  await page.evaluate(() => window.oshelfDemo.seek(window.oshelfDemo.duration));
+  assert.equal(await page.locator('.delivered-item').count(),2,'Both items delivered');
+  assert.equal(await page.locator('.os-card').count(),2,'Cards stay on the shelf');
+  await page.evaluate(() => window.oshelfDemo.replay());
+  await page.waitForFunction(() => document.querySelectorAll('.delivered-item').length === 2, null, {timeout: 20000});
+  await page.evaluate(() => window.oshelfDemo.replay());
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => window.oshelfDemo.pause());
+  const frozen = await page.evaluate(() => window.oshelfDemo.elapsed);
+  await page.waitForTimeout(700);
+  assert.equal(await page.evaluate(() => window.oshelfDemo.elapsed),frozen,'Pause stops the timeline');
+  await page.evaluate(() => { const scrub = document.querySelector('#scrub'); scrub.value = '500'; scrub.dispatchEvent(new Event('input',{bubbles:true})); });
+  assert.ok(Math.abs(await page.evaluate(() => window.oshelfDemo.elapsed) - 5.1) < 0.2,'Scrubber seeks the timeline');
+  await page.reload();
+  await page.evaluate(() => document.querySelector('#stage').scrollIntoView({block:'start', behavior:'instant'}));
+  await page.waitForFunction(() => window.oshelfDemo && window.oshelfDemo.elapsed > 0.1, null, {timeout: 5000});
+  for (const width of [320,390,700,768,1024,1440]) {
+    await page.setViewportSize({width,height:900}); await page.reload();
+    await page.waitForFunction(() => window.oshelfDemo && window.oshelfDemo.duration > 0);
+    await page.evaluate(() => { window.oshelfDemo.pause(); window.oshelfDemo.seek(5.2); });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal page overflow at ' + width + ': ' + await page.evaluate(() => [...document.querySelectorAll('body *')].filter(el => el.getBoundingClientRect().right > innerWidth + 1).map(el => el.className).join(', ')));
+    const geometry = await page.evaluate(() => {
       const outer = document.querySelector('#desktop').getBoundingClientRect(), inner = document.querySelector('#shelf').getBoundingClientRect();
-      return inner.left >= outer.left && inner.right <= outer.right && inner.top >= outer.top && inner.bottom <= outer.bottom;
+      return inner.left >= outer.left - 1 && inner.right <= outer.right + 1 && inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
     });
-    assert.ok(fits, edge + ' shelf fits desktop');
+    assert.equal(geometry, true, `Shelf fits at ${width}`);
+    if (width === 390 && process.env.OSHELF_SITE_CAPTURE) await page.screenshot({path:'/tmp/oshelf-site-mobile.png',fullPage:true});
   }
-  await page.locator('#reset').click();
-  await page.locator('.sample').first().dragTo(page.locator('#shelf'));
-  assert.equal(await page.locator('.demo-card').count(),1,'Drag into shelf');
-  await page.locator('[data-workspace="2"]').click();
-  await page.waitForTimeout(250);
-  await page.locator('.demo-card').dragTo(page.locator('#destination'));
-  if (await page.locator('.delivered-item').count() !== 1) await page.screenshot({path:'/tmp/oshelf-drag-failure.png',fullPage:true});
-  assert.equal(await page.locator('.delivered-item').count(),1,'Drag out of shelf');
-  await page.locator('#reset').click();
-  await page.locator('#tour').click();
-  await page.waitForFunction(() => document.querySelectorAll('.delivered-item').length === 2);
-  await page.locator('#reset').click();
-  for (const id of ['image','folder','link']) await page.locator(`[data-park="${id}"]`).click();
+  await page.setViewportSize({width:1440,height:1000}); await page.reload();
+  await page.waitForFunction(() => window.oshelfDemo && window.oshelfDemo.duration > 0);
+  await page.evaluate(() => { window.oshelfDemo.pause(); window.oshelfDemo.seek(5.2); });
   if (process.env.OSHELF_SITE_CAPTURE) {
     await page.screenshot({path:'/tmp/oshelf-site-desktop.png',fullPage:true});
     await page.locator('#desktop').screenshot({path:join(site,'demo.png')});
@@ -64,53 +90,10 @@ try {
     await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; document.querySelector('.nav').style.height='75px'; document.querySelector('.hero').style.paddingTop='35px'; document.querySelector('.hero').style.paddingBottom='35px'; window.scrollTo({top:0,behavior:'instant'}); });
     await page.screenshot({path:join(site,'social.png')});
   }
-  for (const width of [320,390,700,768,1024,1440]) {
-    await page.setViewportSize({width,height:900}); await page.reload();
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal page overflow at ' + width + ': ' + await page.evaluate(() => [...document.querySelectorAll('body *')].filter(el => el.getBoundingClientRect().right > innerWidth + 1).map(el => el.className).join(', ')));
-    for (const edge of ['left','bottom','right']) {
-      await page.locator(`button[data-edge="${edge}"]`).click();
-      await page.waitForTimeout(280);
-      const geometry = await page.evaluate(() => {
-        const a = document.querySelector('#source-window').getBoundingClientRect();
-        const b = document.querySelector('#shelf').getBoundingClientRect();
-        const d = document.querySelector('#desktop').getBoundingClientRect();
-        return {overlap:a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top,
-          fits:b.left >= d.left && b.right <= d.right && b.top >= d.top && b.bottom <= d.bottom};
-      });
-      assert.equal(geometry.overlap,false, `No overlap at ${width} / ${edge}`);
-      assert.equal(geometry.fits,true, `Shelf fits at ${width} / ${edge}`);
-      await page.locator('[data-park="link"]').click();
-      await page.locator('.demo-card button').click();
-      assert.equal(await page.locator('.delivered-item').count(),1);
-      await page.locator('#reset').click();
-      assert.equal(await page.locator('#desktop').getAttribute('data-edge'),'right','Reset restores placement');
-    }
-    if (width === 390 && process.env.OSHELF_SITE_CAPTURE) await page.screenshot({path:'/tmp/oshelf-site-mobile.png',fullPage:true});
-  }
-  await page.setViewportSize({width:1440,height:1000}); await page.reload();
-  for (const edge of ['left','bottom','right']) {
-    await page.locator('#reset').click();
-    await page.locator(`button[data-edge="${edge}"]`).click();
-    await page.locator('.sample').first().dragTo(page.locator('#shelf'));
-    assert.equal(await page.locator('.demo-card').count(),1, 'Drag in / ' + edge);
-    await page.locator('[data-workspace="2"]').click();
-    await page.locator('.demo-card').dragTo(page.locator('#destination'));
-    assert.equal(await page.locator('.delivered-item').count(),1, 'Drag out / ' + edge);
-  }
-  await page.locator('#reset').click();
-  await page.locator('#tour').click();
-  await page.waitForTimeout(500);
-  await page.locator('#tour').click();
-  const stopped = await page.locator('.demo-card').count();
-  await page.waitForTimeout(1500);
-  assert.equal(await page.locator('.demo-card').count(),stopped,'Stop cancels pending tour actions');
-  await page.locator('#reset').click();
-  await page.locator('[data-park="folder"]').focus(); await page.keyboard.press('Enter');
-  assert.equal(await page.locator('.demo-card').count(),1,'Keyboard park');
-  await page.locator('.demo-card button').focus(); await page.keyboard.press('Enter');
-  assert.equal(await page.locator('.delivered-item').count(),1,'Keyboard pickup');
-  await page.emulateMedia({reducedMotion:'reduce'});
-  assert.equal(await page.locator('.shelf').evaluate(el => getComputedStyle(el).transitionDuration),'0s');
+  await page.setViewportSize({width:1440,height:1000}); await page.emulateMedia({reducedMotion:'reduce'}); await page.reload();
+  await page.waitForFunction(() => window.oshelfDemo && window.oshelfDemo.duration > 0);
+  await page.evaluate(() => { window.oshelfDemo.pause(); window.oshelfDemo.seek(5.2); });
+  assert.equal(await page.locator('.oshelf').evaluate(el => getComputedStyle(el).transitionDuration),'0s');
   assert.deepEqual(errors,[]);
-  console.log('PASS website: native browser DnD, click flow, all placements, tour, mobile/tablet, reduced motion, no JS errors');
+  console.log('PASS website: scripted Omarchy desktop animation, timeline seek, playback controls, responsive geometry, reduced motion, no JS errors');
 } finally { if (browser) await browser.close(); server.close(); }

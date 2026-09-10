@@ -1,95 +1,246 @@
-const samples = [
-  {id:'image', type:'IMAGE', icon:'▧', title:'cover.png', detail:'Project artwork', art:true},
-  {id:'folder', type:'FOLDER', icon:'▱', title:'weekend-project', detail:'Folder reference'},
-  {id:'link', type:'LINK', icon:'◎', title:'omarchy.org', detail:'https://omarchy.org/'},
-  {id:'text', type:'TEXT', icon:'≡', title:'git switch -c next-idea', detail:'Text snippet'},
-];
 const $ = id => document.getElementById(id);
-let parked = [], delivered = [], timers = [], playing = false;
-function stopTour() { timers.forEach(clearTimeout); timers = []; playing = false; $('tour').textContent = '▶ Watch demo'; }
-function announce(text) { $('demo-status').textContent = text; }
-function openShelf(open = true) { $('shelf').classList.toggle('closed', !open); $('shelf').inert = !open; $('edge-handle').setAttribute('aria-expanded', String(open)); }
-function setWorkspace(next) {
-  $('source-window').hidden = next !== 1; $('destination').hidden = next !== 2;
-  document.querySelectorAll('[data-workspace]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.workspace) === next)));
-  announce(next === 2 ? parked.length ? '03 / Deliver. Drag a card to Project, or press its arrow.' : 'Your shelf is empty. Switch to Files to park an item.' : '01 / Collect. Drag a sample onto the shelf, or press +.');
+const desktop = $('desktop'), stage = $('stage'), shelf = $('shelf'), edge = $('edge-handle'), cursorEl = $('cursor'), ghostEl = $('ghost');
+
+const artwork = {
+  cover: '<svg viewBox="0 0 320 220" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="320" height="220" fill="#161616"/><circle cx="236" cy="58" r="24" fill="#333"/><path d="M0 152 72 92l46 40 54-62 74 82 74-42v110H0z" fill="#242424"/><path d="M0 184 84 132l58 42 62-52 116 70v28H0z" fill="#0e0e0e"/></svg>',
+  sunset: '<svg viewBox="0 0 320 220" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="320" height="220" fill="#0b0b0b"/><circle cx="160" cy="98" r="52" fill="#202020"/><circle cx="160" cy="98" r="34" fill="#3d3d3d"/><path d="M0 128h320M0 146h320M0 164h320M0 182h320" stroke="#1d1d1d" stroke-width="6"/></svg>'
+};
+const samples = [
+  {id: 'cover', kind: 'image', title: 'cover.png', detail: 'Image · 84 KB', file: 'cover.png', art: 'cover'},
+  {id: 'sunset', kind: 'image', title: 'sunset.png', detail: 'Image · 128 KB', file: 'sunset.png', art: 'sunset'},
+  {id: 'project', kind: 'folder', title: 'weekend-project', detail: 'Folder reference', file: 'weekend-project'},
+  {id: 'link', kind: 'url', title: 'omarchy.org', detail: 'https://omarchy.org/', file: 'omarchy.org'},
+  {id: 'notes', kind: 'text', title: 'git switch -c next-idea', detail: 'Text snippet', file: 'next-idea.txt'},
+  {id: 'plan', kind: 'file', title: 'launch-plan.md', detail: 'File reference', file: 'launch-plan.md'}
+];
+const byId = id => samples.find(s => s.id === id);
+const tileIcon = kind => kind === 'url' ? 'i-link' : kind === 'image' ? 'i-pictures' : kind === 'folder' ? 'i-folder' : kind === 'text' ? 'i-text' : 'i-file';
+const cardIcon = kind => kind === 'url' ? 'i-url' : kind === 'image' ? 'i-image' : kind === 'folder' ? 'i-folder' : kind === 'text' ? 'i-text' : 'i-file';
+
+function media(kind, art) {
+  const wrap = document.createElement('span');
+  if (art) { wrap.className = 'thumb'; wrap.innerHTML = artwork[art]; }
+  else { wrap.className = 'ficon'; wrap.innerHTML = `<svg class="icon"><use href="#${tileIcon(kind)}"/></svg>`; }
+  return wrap;
 }
-function render() {
-  $('count').textContent = String(parked.length).padStart(2,'0');
-  $('empty').hidden = parked.length > 0; $('clear').disabled = parked.length === 0;
+function renderSamples() {
+  $('samples').replaceChildren(...samples.map(sample => {
+    const tile = document.createElement('div');
+    tile.className = 'nw-tile'; tile.dataset.park = sample.id;
+    tile.append(media(sample.kind, sample.art));
+    const name = document.createElement('strong'); name.textContent = sample.file; tile.append(name);
+    return tile;
+  }));
+}
+function renderCards(parked) {
   $('shelf-cards').replaceChildren(...parked.map(id => {
-    const item = samples.find(s => s.id === id), card = document.createElement('article');
-    card.className = 'demo-card'; card.draggable = true; card.dataset.id = id;
-    if (item.art) { const art = document.createElement('div'); art.className = 'card-art'; art.setAttribute('aria-hidden','true'); card.append(art); }
-    for (const [className, text] of [['card-type',item.type],['card-title',item.title],['card-detail',item.detail]]) { const span = document.createElement('span'); span.className = className; span.textContent = text; card.append(span); }
-    const button = document.createElement('button'); button.textContent = '↗'; button.setAttribute('aria-label','Pick up ' + item.title); button.addEventListener('click',() => { stopTour(); deliver(id); }); card.append(button);
-    card.addEventListener('dragstart', e => { stopTour(); e.dataTransfer.setData('text/plain','shelf:' + id); e.dataTransfer.effectAllowed = 'copy'; });
+    const sample = byId(id);
+    const card = document.createElement('article');
+    card.className = 'os-card'; card.dataset.id = id; card.dataset.kind = sample.kind;
+    if (sample.art) { const thumb = document.createElement('span'); thumb.className = 'os-card-thumb'; thumb.innerHTML = artwork[sample.art]; card.append(thumb); }
+    const icon = document.createElement('span'); icon.className = 'os-card-icon'; icon.innerHTML = `<svg class="icon"><use href="#${cardIcon(sample.kind)}"/></svg>`; card.append(icon);
+    const kind = document.createElement('span'); kind.className = 'os-card-kind'; kind.textContent = sample.kind === 'url' ? 'LINK' : sample.kind.toUpperCase(); card.append(kind);
+    const title = document.createElement('strong'); title.className = 'os-card-title'; title.textContent = sample.title; card.append(title);
+    const detail = document.createElement('span'); detail.className = 'os-card-detail'; detail.textContent = sample.detail; card.append(detail);
     return card;
   }));
-  document.querySelectorAll('[data-park]').forEach(button => { button.disabled = parked.includes(button.dataset.park); button.textContent = button.disabled ? '✓' : '+'; });
-  $('delivered').replaceChildren(...delivered.map(id => { const span = document.createElement('span'); span.className = 'delivered-item'; span.textContent = '✓ ' + samples.find(s => s.id === id).title; return span; }));
+  $('os-meta').textContent = parked.length ? `ON YOUR SHELF  ·  ${parked.length}` : 'READY WHEN YOU ARE';
+  $('empty').hidden = parked.length > 0;
+  edge.classList.toggle('has-items', parked.length > 0);
 }
-function park(id) {
-  if (!samples.some(s => s.id === id)) return;
-  if (!parked.includes(id)) parked.push(id);
-  openShelf(); render(); announce('02 / Switch. Select “02 Project” above. Your items stay on the shelf.');
+function renderDelivered(delivered) {
+  const grid = $('delivered');
+  grid.querySelectorAll('.nw-tile').forEach(el => el.remove());
+  for (const id of delivered) {
+    const sample = byId(id);
+    const tile = document.createElement('div'); tile.className = 'nw-tile delivered-item'; tile.dataset.id = id;
+    tile.append(media(sample.kind, sample.art));
+    const name = document.createElement('strong'); name.textContent = sample.file; tile.append(name);
+    grid.append(tile);
+  }
+  grid.classList.toggle('empty', delivered.length === 0);
 }
-function deliver(id) {
-  if (!parked.includes(id)) return;
-  setWorkspace(2); if (!delivered.includes(id)) delivered.push(id); render();
-  announce('Delivered. The card stays on your shelf for another trip.');
+function openShelf(open) {
+  shelf.classList.toggle('closed', !open);
+  edge.classList.toggle('hidden', open);
 }
-for (const item of samples) {
-  const row = document.createElement('div'); row.className = 'sample'; row.draggable = true;
-  const icon = document.createElement('span'); icon.className = 'sample-icon'; icon.setAttribute('aria-hidden','true');
-  const paths = {image:'M3 3h18v18H3z M3 16l5-5 5 5 4-4 4 4 M16 7h.01',folder:'M3 6h6l2 3h10v11H3z',link:'M10 13a4 4 0 0 0 6 0l4-4a4 4 0 0 0-6-6l-2 2 M14 11a4 4 0 0 0-6 0l-4 4a4 4 0 0 0 6 6l2-2',text:'M4 5h16 M4 10h12 M4 15h16 M4 20h9'};
-  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('viewBox','0 0 24 24');
-  const path = document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',paths[item.id]); svg.append(path); icon.append(svg);
-  const copy = document.createElement('div'); copy.className = 'sample-copy';
-  const title = document.createElement('strong'); title.textContent = item.title;
-  const detail = document.createElement('small'); detail.textContent = item.type.toLowerCase(); copy.append(title,detail);
-  const button = document.createElement('button'); button.textContent = '+'; button.dataset.park = item.id; button.setAttribute('aria-label','Park ' + item.title); button.addEventListener('click', () => { stopTour(); park(item.id); });
-  row.append(icon,copy,button); row.addEventListener('dragstart', e => { stopTour(); e.dataTransfer.setData('text/plain','sample:' + item.id); e.dataTransfer.effectAllowed = 'copy'; openShelf(); }); $('samples').append(row);
+function setWorkspace(next) {
+  desktop.dataset.workspace = String(next);
+  document.querySelectorAll('.ws').forEach(el => { el.hidden = Number(el.dataset.ws) !== next; });
+  document.querySelectorAll('.obar-workspaces [data-workspace]').forEach(el => { if (el.dataset.workspace === '1' || el.dataset.workspace === '2') el.setAttribute('aria-pressed', String(Number(el.dataset.workspace) === next)); });
 }
-for (const element of [$('shelf'),$('destination')]) {
-  element.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; element.classList.add('dragover'); });
-  element.addEventListener('dragleave', e => { if (!element.contains(e.relatedTarget)) element.classList.remove('dragover'); });
-  element.addEventListener('drop', e => {
-    e.preventDefault(); e.stopPropagation(); stopTour(); element.classList.remove('dragover');
-    const [source,id] = e.dataTransfer.getData('text/plain').split(':');
-    if (element.id === 'shelf' && source === 'sample') park(id);
-    else if (element.id === 'destination' && source === 'shelf') deliver(id);
-    else announce('Use the sample items to try this demo. Your own files stay on your computer.');
-  });
+
+/* Timeline */
+const T = {pickCover: 1.0, openShelf: 1.9, parkCover: 2.6, pickLink: 3.3, parkLink: 4.8, switchWs: 5.6, pickCard1: 6.3, deliverCover: 7.5, pickCard2: 8.1, deliverLink: 9.2, end: 10.2};
+const DURATION = T.end;
+const K = {};
+function designPoint(el, clampEl) {
+  const scale = parseFloat(getComputedStyle(stage).getPropertyValue('--stage-scale')) || 1;
+  const base = desktop.getBoundingClientRect();
+  let rect = el.getBoundingClientRect();
+  if (clampEl) {
+    const bounds = clampEl.getBoundingClientRect();
+    const left = Math.max(rect.left, bounds.left), right = Math.min(rect.right, bounds.right);
+    const top = Math.max(rect.top, bounds.top), bottom = Math.min(rect.bottom, bounds.bottom);
+    if (right > left && bottom > top) rect = {left, right, top, bottom};
+  }
+  return {x: (rect.left + rect.right) / 2 / scale - base.left / scale, y: (rect.top + rect.bottom) / 2 / scale - base.top / scale};
 }
-$('desktop').addEventListener('dragover', e => e.preventDefault());
-$('desktop').addEventListener('drop', e => e.preventDefault());
-document.addEventListener('dragend',() => document.querySelectorAll('.dragover').forEach(el => el.classList.remove('dragover')));
-document.querySelectorAll('button[data-edge]').forEach(button => button.addEventListener('click', () => {
-  stopTour(); $('desktop').dataset.edge = button.dataset.edge;
-  document.querySelectorAll('button[data-edge]').forEach(b => b.setAttribute('aria-pressed',String(b === button))); openShelf();
-}));
-document.querySelectorAll('[data-workspace]').forEach(button => button.addEventListener('click', () => { stopTour(); setWorkspace(Number(button.dataset.workspace)); }));
-$('collapse').addEventListener('click',() => { stopTour(); openShelf(false); $('edge-handle').focus(); });
-$('edge-handle').addEventListener('click',() => { stopTour(); openShelf($('shelf').classList.contains('closed')); });
-$('clear').addEventListener('click',() => { stopTour(); parked = []; render(); announce('Shelf cleared. Park something new.'); });
-function reset() {
-  stopTour(); parked = []; delivered = [];
-  $('desktop').dataset.edge = 'right';
-  document.querySelectorAll('button[data-edge]').forEach(b => b.setAttribute('aria-pressed',String(b.dataset.edge === 'right')));
-  document.querySelectorAll('.dragover').forEach(el => el.classList.remove('dragover'));
-  setWorkspace(1); openShelf(); render();
+function buildTimeline() {
+  renderCards(['cover', 'link']);
+  const list = $('shelf-cards');
+  K.cover = designPoint(document.querySelector('[data-park="cover"]'));
+  K.link = designPoint(document.querySelector('[data-park="link"]'));
+  K.ws2 = designPoint(document.querySelector('.obar-workspaces [data-workspace="2"]'));
+  K.shelf = designPoint(shelf);
+  K.shelfDrop = {x: K.shelf.x, y: K.shelf.y - 30};
+  K.card1 = designPoint(document.querySelector('.os-card[data-id="cover"]'), list);
+  K.card2 = designPoint(document.querySelector('.os-card[data-id="link"]'), list);
+  const workspace2 = document.querySelector('.ws[data-ws="2"]');
+  workspace2.hidden = false;
+  K.dest = designPoint($('delivered'));
+  workspace2.hidden = true;
+  KEYS = KEY_DEFS.map(key => key.ref ? {t: key.t, ...K[key.ref]} : key);
+  renderCards([]);
 }
-$('reset').addEventListener('click',reset);
-$('tour').addEventListener('click',() => {
-  if (playing) { stopTour(); return; }
-  reset(); playing = true; $('tour').textContent = '■ Stop demo';
-  [[350,() => park('image')],[1400,() => park('link')],[2700,() => setWorkspace(2)],[3900,() => deliver('image')],[5000,() => { deliver('link'); stopTour(); }]].forEach(([delay,fn]) => timers.push(setTimeout(fn,delay)));
-});
-document.addEventListener('visibilitychange',() => { if (document.hidden) stopTour(); });
+let KEYS = [];
+const KEY_DEFS = [
+  {t: 0, x: 860, y: 500},
+  {t: T.pickCover, x: 0, y: 0, ref: 'cover'},
+  {t: T.pickCover + 0.35, x: 0, y: 0, ref: 'cover'},
+  {t: T.parkCover, x: 0, y: 0, ref: 'shelfDrop'},
+  {t: T.pickLink, x: 0, y: 0, ref: 'link'},
+  {t: T.pickLink + 0.35, x: 0, y: 0, ref: 'link'},
+  {t: T.parkLink, x: 0, y: 0, ref: 'shelfDrop'},
+  {t: T.switchWs, x: 0, y: 0, ref: 'ws2'},
+  {t: T.switchWs + 0.3, x: 0, y: 0, ref: 'ws2'},
+  {t: T.pickCard1, x: 0, y: 0, ref: 'card1'},
+  {t: T.pickCard1 + 0.35, x: 0, y: 0, ref: 'card1'},
+  {t: T.deliverCover, x: 0, y: 0, ref: 'dest'},
+  {t: T.pickCard2, x: 0, y: 0, ref: 'card2'},
+  {t: T.pickCard2 + 0.35, x: 0, y: 0, ref: 'card2'},
+  {t: T.deliverLink, x: 0, y: 0, ref: 'dest'},
+  {t: T.end, x: 1420, y: 840}
+];
+const easeInOut = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+function cursorAt(t) {
+  if (t <= KEYS[0].t) return KEYS[0];
+  for (let i = 0; i < KEYS.length - 1; i++) {
+    const a = KEYS[i], b = KEYS[i + 1];
+    if (t <= b.t) { const e = easeInOut((t - a.t) / Math.max(.0001, b.t - a.t)); return {x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e}; }
+  }
+  return KEYS[KEYS.length - 1];
+}
+function dragAt(t) {
+  if (t >= T.pickCover && t < T.parkCover) return {id: 'cover', from: 'tile'};
+  if (t >= T.pickLink && t < T.parkLink) return {id: 'link', from: 'tile'};
+  if (t >= T.pickCard1 && t < T.deliverCover) return {id: 'cover', from: 'card'};
+  if (t >= T.pickCard2 && t < T.deliverLink) return {id: 'link', from: 'card'};
+  return null;
+}
+function statusAt(t) {
+  if (t < T.pickCover) return '01 / Collect. Drag a file toward the edge.';
+  if (t < T.parkCover) return 'Dragging cover.png to the shelf…';
+  if (t < T.pickLink) return 'Parked. The card waits until you pick it up.';
+  if (t < T.parkLink) return 'Parking the link…';
+  if (t < T.switchWs) return '02 / Switch. Two items parked, one workspace away.';
+  if (t < T.pickCard1) return 'The shelf follows you across workspaces.';
+  if (t < T.deliverCover) return '03 / Pick up. Delivering the image…';
+  if (t < T.pickCard2) return 'Delivered. The card stays for another trip.';
+  if (t < T.deliverLink) return 'Delivering the link…';
+  return 'Park. Switch. Pick up. That is the whole loop.';
+}
+const state = {parked: [], delivered: [], ws: 1, open: true, dragKey: ''};
+function renderDrag(drag) {
+  const key = drag ? drag.id + ':' + drag.from : '';
+  if (key !== state.dragKey) {
+    state.dragKey = key;
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    if (drag) {
+      const sample = byId(drag.id);
+      ghostEl.replaceChildren(media(sample.kind, sample.art));
+      const name = document.createElement('strong'); name.textContent = sample.file; ghostEl.append(name);
+      const source = drag.from === 'tile' ? document.querySelector(`[data-park="${drag.id}"]`) : document.querySelector(`.os-card[data-id="${drag.id}"]`);
+      if (source) source.classList.add('dragging');
+    }
+  }
+  ghostEl.classList.toggle('visible', !!drag);
+}
+function renderAt(t) {
+  const parked = [];
+  if (t >= T.parkCover) parked.push('cover');
+  if (t >= T.parkLink) parked.push('link');
+  const delivered = [];
+  if (t >= T.deliverCover) delivered.push('cover');
+  if (t >= T.deliverLink) delivered.push('link');
+  if (parked.join() !== state.parked.join()) { state.parked = parked; renderCards(parked); }
+  if (delivered.join() !== state.delivered.join()) { state.delivered = delivered; renderDelivered(delivered); }
+  const ws = t >= T.switchWs ? 2 : 1;
+  if (ws !== state.ws) { state.ws = ws; setWorkspace(ws); }
+  const open = t >= T.openShelf;
+  if (open !== state.open) { state.open = open; openShelf(open); }
+  desktop.style.setProperty('--dwell', !open && t >= T.openShelf - 0.4 ? Math.min(1, (t - (T.openShelf - 0.4)) / 0.4) : 0);
+  const drag = dragAt(t);
+  renderDrag(drag);
+  const point = cursorAt(t);
+  cursorEl.style.transform = `translate(${point.x}px, ${point.y}px)`;
+  ghostEl.style.transform = `translate(${point.x + 16}px, ${point.y + 12}px)`;
+  document.querySelector('.obar-workspaces [data-workspace="2"]').classList.toggle('pressed', Math.abs(t - T.switchWs) < 0.14);
+  $('os-message').textContent = drag ? 'Release to park' : 'Temporary by design';
+  $('demo-status').textContent = statusAt(t);
+  const pct = Math.round(t / DURATION * 1000);
+  $('scrub').value = String(pct);
+  $('scrub').style.setProperty('--progress', String(pct / 10));
+  $('time').textContent = formatTime(t) + ' / ' + formatTime(DURATION);
+}
+const formatTime = seconds => Math.floor(seconds / 60) + ':' + String(Math.floor(seconds % 60)).padStart(2, '0');
+
+/* Playback */
+let elapsed = 0, playing = false, raf = 0, lastTs = 0, started = false;
+function updatePlay() { $('play').textContent = playing ? '❚❚' : '▶'; $('play').setAttribute('aria-label', playing ? 'Pause demo' : 'Play demo'); }
+function play() {
+  if (playing) return;
+  if (elapsed >= DURATION - 0.001) elapsed = 0;
+  playing = true; lastTs = performance.now(); updatePlay();
+  raf = requestAnimationFrame(loop);
+}
+function pause() { playing = false; cancelAnimationFrame(raf); updatePlay(); }
+function loop(now) {
+  elapsed = Math.min(DURATION, elapsed + Math.min(0.1, (now - lastTs) / 1000));
+  lastTs = now;
+  renderAt(elapsed);
+  if (elapsed >= DURATION) { playing = false; updatePlay(); return; }
+  raf = requestAnimationFrame(loop);
+}
+function seek(t) { elapsed = Math.max(0, Math.min(DURATION, t)); renderAt(elapsed); }
+function replay() { pause(); seek(0); play(); }
+$('play').addEventListener('click', () => playing ? pause() : play());
+$('replay').addEventListener('click', replay);
+$('scrub').addEventListener('input', e => { pause(); seek(Number(e.target.value) / 1000 * DURATION); });
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+new IntersectionObserver((entries, observer) => {
+  if (started || reducedMotion.matches) return;
+  if (entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= 0.3)) { started = true; observer.disconnect(); play(); }
+}, {threshold: [0.3]}).observe(stage);
+
+/* Clock, stage fit, install copy */
+function tick() {
+  const now = new Date();
+  $('obar-clock').textContent = now.toLocaleDateString('en-US', {weekday: 'long'}) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+}
+function fit() { stage.style.setProperty('--stage-scale', String(stage.clientWidth / 1920)); }
+window.addEventListener('resize', fit);
 $('copy-install').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText($('install-code').textContent); $('copy-install').textContent = 'Copied ✓'; }
   catch { const selection = window.getSelection(), range = document.createRange(); range.selectNodeContents($('install-code')); selection.removeAllRanges(); selection.addRange(range); $('copy-install').textContent = 'Select & copy'; }
-  setTimeout(() => { $('copy-install').textContent = 'Copy commands'; },2500);
+  setTimeout(() => { $('copy-install').textContent = 'Copy commands'; }, 2500);
 });
-reset();
+
+window.oshelfDemo = {play, pause, replay, seek, duration: DURATION, get elapsed() { return elapsed; }, get playing() { return playing; }};
+renderSamples();
+fit();
+buildTimeline();
+tick(); setInterval(tick, 30000);
+renderAt(0);
+updatePlay();
+if (reducedMotion.matches) seek(DURATION);

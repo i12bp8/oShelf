@@ -8,7 +8,7 @@
 
 Park that file. Save your train of thought. Pick it up where you need it.
 
-**[Try the interactive demo →](https://i12bp8.github.io/oShelf/)** · [Install](#install) · [Make it yours](#make-it-yours) · [User guide](docs/usage.md)
+**[Watch the demo →](https://i12bp8.github.io/oShelf/)** · [Install](#install) · [Make it yours](#make-it-yours) · [User guide](docs/usage.md)
 
 [![MIT License](https://img.shields.io/badge/license-MIT-ffffff?style=flat-square&labelColor=000000)](LICENSE)
 [![Omarchy Quattro](https://img.shields.io/badge/made_for-Omarchy_Quattro-ffffff?style=flat-square&labelColor=000000)](https://omarchy.org/)
@@ -16,7 +16,7 @@ Park that file. Save your train of thought. Pick it up where you need it.
 
 [![oShelf carrying an image on an Omarchy desktop](preview.png)](preview.png)
 
-<sub>The real plugin on an Omarchy desktop. [Try the interactive browser demo →](https://i12bp8.github.io/oShelf/)</sub>
+<sub>The real plugin on an Omarchy desktop. [Watch the scripted browser demo →](https://i12bp8.github.io/oShelf/)</sub>
 
 </div>
 
@@ -194,6 +194,6 @@ Use sample data in screenshots and logs.
 If oShelf finds a place in your day, [give it a star](https://github.com/i12bp8/oShelf)
 or show someone your new desktop habit.
 
-[Try it in your browser →](https://i12bp8.github.io/oShelf/)
+[Watch it in your browser →](https://i12bp8.github.io/oShelf/)
 
 </div>
