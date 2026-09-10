@@ -33,7 +33,11 @@ PanelWindow {
     // Only these regions receive input; the rest of the desktop passes through.
     mask: Region {
         item: edge
-        Region { item: surface; width: root.expanded ? surface.width : 0; radius: surface.radius }
+        Region {
+            x: surface.x; y: surface.y
+            width: root.expanded ? surface.width : 0; height: surface.height
+            radius: surface.radius
+        }
     }
     Behavior on openness {
         NumberAnimation { duration: root.reducedMotion ? 0 : root.expanded ? root.preferences.motionDuration : Math.round(root.preferences.motionDuration * 0.75); easing.type: Easing.OutCubic }
