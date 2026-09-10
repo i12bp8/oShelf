@@ -14,9 +14,9 @@ Park that file. Save your train of thought. Pick it up where you need it.
 [![Omarchy Quattro](https://img.shields.io/badge/made_for-Omarchy_Quattro-ffffff?style=flat-square&labelColor=000000)](https://omarchy.org/)
 [![Website](https://img.shields.io/badge/play-the_demo-ffffff?style=flat-square&labelColor=000000)](https://i12bp8.github.io/oShelf/)
 
-[![Interactive oShelf browser demo showing files parked beside a desktop window](site/demo.png)](https://i12bp8.github.io/oShelf/#playground)
+[![oShelf carrying an image on an Omarchy desktop](preview.png)](preview.png)
 
-<sub>Browser demo shown above. The real plugin lives at the edge of your Omarchy desktop.</sub>
+<sub>The real plugin on an Omarchy desktop. [Try the interactive browser demo →](https://i12bp8.github.io/oShelf/)</sub>
 
 </div>
 

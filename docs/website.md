@@ -38,6 +38,6 @@ trips on all edges, keyboard delivery, complete reset, and playback cancellation
 Set `OSHELF_SITE_CAPTURE=1` to
 regenerate `site/demo.png`, `site/social.png`, and temporary review screenshots.
 
-README and social previews are screenshots of this browser demo. `preview.png`
-at repository root remains the native plugin capture used by its marketplace
-metadata. Do not present the simulation as a native screenshot.
+The social preview is a screenshot of this browser demo. The README shows the
+native plugin capture `preview.png`, which also serves the marketplace metadata.
+Do not present the simulation as a native screenshot.
