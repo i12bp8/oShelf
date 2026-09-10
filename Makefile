@@ -18,5 +18,6 @@ native/liboshelf-native.so: native/drag.cpp build/drag.moc
 check: all
 	omarchy plugin validate .
 	node --test tests/payload.test.cjs
+	node --test tests/preferences.test.cjs
 	python3 tests/metadata_test.py
 	python3 tests/install_test.py

@@ -1,23 +1,59 @@
+<div align="center">
+
+<img src="site/icon.svg" width="64" height="64" alt="oShelf logo">
+
 # oShelf
 
-**Park anything. Pick it up anywhere.**
+### A little room between apps.
 
-A small, temporary shelf at the right edge of your Omarchy desktop. Drop something
-there, switch context, and drag it into another application.
+Park that file. Save your train of thought. Pick it up where you need it.
 
-- Files and folders stay where they are; cards carry references.
-- Multiple files travel together in one card.
-- Images get thumbnails, links get domain previews, and text stays readable.
-- Portable MIME formats retain their original bytes, including binary data.
-- One shelf across monitors and workspaces. No bar widget or permanent sidebar.
-- Current Omarchy colors and typography. No settings required.
+**[Try the interactive demo →](https://i12bp8.github.io/oShelf/)** · [Install](#install) · [Make it yours](#make-it-yours) · [User guide](docs/usage.md)
+
+[![MIT License](https://img.shields.io/badge/license-MIT-d2ed9a?style=flat-square&labelColor=1b2215)](LICENSE)
+[![Omarchy Quattro](https://img.shields.io/badge/made_for-Omarchy_Quattro-d2ed9a?style=flat-square&labelColor=1b2215)](https://omarchy.org/)
+[![Website](https://img.shields.io/badge/play-the_demo-d2ed9a?style=flat-square&labelColor=1b2215)](https://i12bp8.github.io/oShelf/)
+
+[![Interactive oShelf browser demo showing files parked beside a desktop window](site/demo.png)](https://i12bp8.github.io/oShelf/#playground)
+
+<sub>Browser demo shown above. The real plugin lives at the edge of your Omarchy desktop.</sub>
+
+</div>
+
+---
+
+You have the file. The destination is three windows and a workspace away.
+
+**oShelf gives you somewhere to put it down.** A small temporary shelf for files,
+images, links, and text, always within reach at your desktop edge. Drop something
+in, switch context, and drag it into place.
+
+No extra window to manage. No folder to clean up. Just a little less friction.
+
+## Park. Switch. Pick up.
+
+1. **Park** — drag toward the edge handle. The shelf opens. Drop your item.
+2. **Switch** — change apps, workspaces, or monitors. Your shelf comes with you.
+3. **Pick up** — drag the card into its destination. It stays on the shelf for another trip.
+
+A screenshot headed for a message. A folder moving between projects. A snippet
+you need on the other side of a context switch. Same simple flow.
+
+| A small feature | A surprisingly useful detail |
+| --- | --- |
+| **Carry the whole bundle** | Multiple files travel together in one card. |
+| **See what you parked** | Image thumbnails, folder cards, domain previews, readable text. |
+| **Find it fast** | Search filenames, local paths, links, and snippets. |
+| **Make a little more room** | Compact cards and a keep-open toggle for busy sessions. |
+| **Undo the oops** | Restore Remove or Clear for ten seconds. |
+| **Feel at home** | Your Omarchy colors and typography, soft motion, and reduced-motion support. |
+| **Choose your edge** | Left, right, or a horizontal bottom tray. |
 
 ## Install
 
-Requires **Omarchy Quattro with its Quickshell plugin host**, Qt 6.8 or newer,
-and Python 3 (included with Omarchy). Building the small native Qt drag component
-requires `gcc`, `make`, `pkgconf`, `qt6-base`, and `qt6-declarative`. No extra Python
-packages or privileged installer. Earlier Omarchy releases without the shell plugin host are unsupported.
+Requires **Omarchy Quattro with the Quickshell plugin host**, **Qt 6.8+**, and
+**Python 3**. The native drag component is built locally; build dependencies are
+`gcc`, `make`, `pkgconf`, `qt6-base`, and `qt6-declarative`.
 
 ```sh
 omarchy plugin add https://github.com/i12bp8/oShelf
@@ -25,84 +61,137 @@ make -C ~/.config/omarchy/plugins/io.github.i12bp8.oshelf
 omarchy plugin enable io.github.i12bp8.oshelf
 ```
 
-After plugin or Qt updates, rebuild with `make` in the installed directory and restart
-the shell after finishing any active transfer.
+**Then hover at the middle of the right screen edge.** Your shelf is waiting.
 
-For a local checkout, run `./scripts/install.sh`. It validates and copies the
-runtime files and the locally built native component into the user plugin directory, then enables the plugin through
-Omarchy. It refuses to replace an existing installation.
+For a local checkout, use `./scripts/install.sh`. It builds and validates the
+plugin, copies the runtime files, and enables it. It refuses to overwrite an
+existing installation.
 
-Remove it with:
+After plugin or Qt updates, rebuild in the installed directory and restart the
+shell after finishing any active transfer. Reloading clears temporary shelf items.
+
+<details>
+<summary><strong>Optional shortcuts & removal</strong></summary>
+
+Open the shelf from a launcher or your own keybinding:
+
+```sh
+omarchy-shell oshelf show
+omarchy-shell oshelf hide
+omarchy-shell oshelf settings
+```
+
+No shortcut is installed automatically.
+
+Remove the plugin:
 
 ```sh
 omarchy plugin remove io.github.i12bp8.oshelf
 ```
 
-Or run `./scripts/uninstall.sh`. No configuration edits, shortcuts, persistent
-payload files, or background service remain to remove separately.
+Your preferences in `~/.config/omarchy/oshelf.json` are retained for a future
+reinstall. Remove that file separately if you want to forget them.
 
-## Carry something
+</details>
 
-1. Drag toward the middle of the right screen edge. The small landing mark brightens.
-2. Move into the shelf and release.
-3. Switch workspace or application. Hover at the same edge to reopen it.
-4. Drag a card into the destination.
+## Make it yours
 
-Drag cards onto one another to reorder. Hover or focus a card to reveal **Remove**.
-**Clear** empties the shelf. Pickup uses copy semantics and keeps the card until
-you remove it; original files are never moved or deleted.
+Click the **sliders icon** in the shelf. Choose where it lives and how it feels.
 
-**Escape** collapses. **Tab** focuses controls/cards; **Delete** removes a focused
-card; **Ctrl+Up/Down** reorders it; **PageUp/PageDown** scroll; **Ctrl+Backspace**
-clears. For an optional launcher or shortcut, use `omarchy-shell oshelf show`.
-No shortcut is installed automatically.
+- **Placement:** left, right, or bottom.
+- **Size:** separate width and height for side panels and the bottom tray.
+- **Activation:** choose the zone’s length, depth, and position along the edge.
+- **Timing:** tune hover-to-open and leave-to-close delays.
+- **Motion:** choose animation duration, steady-hover behavior, and reduced motion.
 
-## What can be carried
+Defaults are deliberately small: **360 × 520** for the sides and **680 × 400** for
+the bottom. Sizes automatically fit smaller displays. Settings have bounded ranges,
+a zone preview, and Apply / Cancel controls.
 
-| Source | Representation | Transfer |
-| --- | --- | --- |
-| Local file / folder | Filename / folder card | Original local file URI |
-| Multiple local files | One bundle, mini thumbnails for image files | Original URI list |
-| PNG, JPEG, WebP data | Thumbnail when small enough | Original encoded image bytes |
-| Browser image | Image or domain card, depending on the browser's offer | Offered image bytes and/or URL |
-| Web link | Domain and URL | Offered URL and text formats |
-| Selected text | Plain text preview | Original text and any portable rich-text formats |
-| Other MIME data | Transfer card | Original portable bytes |
+Preferences survive updates. Shelf contents stay temporary.
+[See every setting and its limits →](docs/usage.md#make-it-yours)
 
-Destinations choose the format they understand. Image-only drags do not become
-files: file managers that require file URIs may reject them. Carry a saved image
-file when you need that behavior. No web requests are made for previews, including
-favicons. HTML is carried but never rendered. Process-local Qt, portal, browser
-file tokens, and file-manager cut instructions are excluded.
+## A pocket, not an archive
 
-The landing area is **8 logical pixels wide and at most 240 pixels tall**, centered
-on each display's right edge. Wayland provides drag events only after entry into
-that area. It also opens on ordinary hover; there is no global drag surveillance.
-It reserves no desktop space. Adjacent monitor edges may be crossed normally
-outside that small landing area.
+**Your files stay where they are.** oShelf carries references, never moves or
+deletes originals, and uses copy semantics when you pick something up.
 
-Contents live in memory until removed, disabled, reloaded, or the shell/session
-ends. There is no history or disk persistence. References to moved/deleted files
-are marked unavailable when reopened; a destination can still encounter a file
-that disappears after that check. Source-owned temporary files remain references.
+**Your shelf lives in session memory.** No payload history or persistent content
+files. Disable, reload, or end the shell session and it empties. Removed content
+remains briefly available for undo.
 
-Limits: 48 cards, 256 references per card, 16 MiB of MIME bytes per card and 64 MiB
-across the shelf. Preview encoding is limited to 2 MiB; larger images still carry
-their bytes. Qt receives source data before oShelf can check its size, so these are
-retention limits, not a sandbox against a malicious or stalled drag source.
+**Your data stays local.** No network requests, telemetry, clipboard monitoring,
+or rendered HTML. Image previews come from offered data or local raster files.
 
-## Development
+Destinations choose the formats they accept. Image-only drags are not converted
+into files; use a saved image when the destination needs a file URI. Browser,
+GTK, portal, and multi-monitor compatibility is not exhaustively tested.
+
+<details>
+<summary><strong>Keyboard flow</strong></summary>
+
+| Key | Action |
+| --- | --- |
+| Ctrl+F | Find something on your shelf |
+| Enter in search | Focus the first matching card |
+| Escape | Clear search, leave settings, or close |
+| Tab | Move between controls and cards |
+| Delete | Remove the focused card |
+| Ctrl+Z | Undo removal/clear outside the search field |
+| Ctrl+Up / Down | Reorder cards |
+| Ctrl+Left / Right | Reorder in the bottom tray |
+| PageUp / PageDown | Scroll |
+| Ctrl+Backspace | Clear the shelf |
+
+</details>
+
+<details>
+<summary><strong>What can it carry?</strong></summary>
+
+| Drop | What travels |
+| --- | --- |
+| Local file or folder | Original local file URI |
+| Multiple local files | Original URI list, bundled into one card |
+| PNG, JPEG, WebP data | Original encoded bytes |
+| Browser image | Image and/or URL formats offered by the browser |
+| Web link | Offered URL and text formats |
+| Selected text | Plain text and portable rich-text formats |
+| Other portable MIME data | Original bytes, including binary formats |
+
+Limits: 48 cards, 256 references per card, 16 MiB of MIME bytes per card, and
+64 MiB across the shelf. These bound retained payloads, not Qt’s initial data
+transfer or total process memory. See the [user guide](docs/usage.md) for details.
+
+</details>
+
+## Built in the open
+
+oShelf is an independent community plugin, MIT licensed.
 
 ```sh
-make
-omarchy plugin validate .
-node --test tests/payload.test.cjs
-python3 tests/metadata_test.py
+make check
 ```
 
-See [verification](docs/verification.md), [architecture](docs/architecture.md),
-and [marketplace preparation](docs/marketplace.md).
+This builds the native component, validates the Omarchy manifest, and runs payload,
+preferences, metadata, and installation checks. The opt-in Wayland tests exercise
+real native drag round trips, hover behavior, and drag lifetime.
 
-![oShelf carrying an image](preview.png)
+[Architecture](docs/architecture.md) · [Verification & compatibility](docs/verification.md) ·
+[Website development](docs/website.md) · [Product direction](docs/design.md)
 
-MIT licensed. No telemetry, clipboard monitoring, network access, or content logs.
+Found a rough edge? [Open an issue](https://github.com/i12bp8/oShelf/issues).
+Include your Omarchy/Qt versions, source and destination apps, and steps to reproduce.
+Use sample data in screenshots and logs.
+
+---
+
+<div align="center">
+
+**Small tool. Hard to go back.**
+
+If oShelf finds a place in your day, [give it a star](https://github.com/i12bp8/oShelf)
+or show someone your new desktop habit.
+
+[Try it in your browser →](https://i12bp8.github.io/oShelf/)
+
+</div>

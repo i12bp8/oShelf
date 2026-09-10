@@ -22,5 +22,6 @@ Item {
         function show(): void { for (var window of windows.instances) window.reveal(); }
         function hide(): void { for (var window of windows.instances) window.collapse(); }
         function clear(): void { shelf.clear(); }
+        function settings(): void { for (var window of windows.instances) window.openSettings(); }
     }
 }

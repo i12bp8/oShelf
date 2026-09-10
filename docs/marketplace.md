@@ -23,7 +23,8 @@ Disclose these capabilities in the maintainer notes:
 - In-memory retention of user-dropped MIME bytes and local file references.
 - A locally compiled C++ Qt component for safe native drag lifetime.
 - A fixed Python helper for local filesystem metadata; no shell interpolation.
-- Local raster thumbnail reads. No network, clipboard, telemetry, or persistent content.
+- Local raster thumbnail reads and a bounded preferences-only JSON file under the
+  user's Omarchy config directory. No network, clipboard, telemetry, or persistent payloads.
 - The opt-in test suite contains a virtual pointer; runtime code never calls it.
 
 Follow the current [submission instructions](https://github.com/omacom/omarchy-plugin-marketplace/blob/main/SUBMISSION.md)

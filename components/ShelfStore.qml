@@ -5,12 +5,32 @@ import "../lib/Payload.js" as Payload
 Item {
     id: root
     property var items: []
+    readonly property alias preferences: preferences
+    ShelfPreferences { id: preferences }
     readonly property alias model: rows
     ListModel { id: rows; dynamicRoles: true }
     property int usedBytes: 0
     property int nextId: 0
     property string draggingId: ""
     property string message: ""
+    onMessageChanged: { if (message) messageTimer.restart(); }
+    Timer { id: messageTimer; interval: 4500; onTriggered: root.message = "" }
+    signal itemAdded()
+    property var undoItems: []
+    readonly property bool canUndo: undoItems.length > 0
+    function forgetUndo() { undoTimer.stop(); undoItems = []; }
+    function remember() { undoItems = items.slice(); undoTimer.restart(); }
+    function undo() {
+        if (busy || !canUndo) return;
+        items = undoItems;
+        rows.clear();
+        usedBytes = 0;
+        items.forEach(function(item) { rows.append({entry: item}); usedBytes += item.bytes; });
+        forgetUndo();
+        message = "Restored";
+        refresh();
+    }
+    Timer { id: undoTimer; interval: 10000; onTriggered: root.forgetUndo() }
     property var metadataQueue: []
     property string checkingId: ""
     readonly property bool busy: draggingId !== ""
@@ -30,6 +50,7 @@ Item {
         try {
             if (items.length >= Payload.maxItems) throw new Error("The shelf is full. Remove a card to make room.");
             var item = Payload.capture(drop, Payload.maxShelfBytes - usedBytes);
+            forgetUndo();
             item.id = String(++nextId);
             items = items.concat([item]);
             rows.append({entry: item});
@@ -37,6 +58,7 @@ Item {
             message = "";
             queueMetadata(item.id);
             drop.accept(Qt.CopyAction);
+            itemAdded();
         } catch (error) {
             message = error.message;
             drop.accepted = false;
@@ -46,12 +68,14 @@ Item {
         if (busy) return;
         var item = find(id);
         if (!item) return;
+        remember();
         rows.remove(items.findIndex(function(entry) { return entry.id === id; }));
         usedBytes -= item.bytes;
         items = items.filter(function(entry) { return entry.id !== id; });
     }
     function clear() {
-        if (busy) return;
+        if (busy || !items.length) return;
+        remember();
         rows.clear(); items = []; usedBytes = 0; message = ""; metadataQueue = [];
     }
     function move(id, before) {

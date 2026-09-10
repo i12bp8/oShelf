@@ -1,9 +1,9 @@
 import QtQuick
-import QtQuick.Effects
 import qs.Commons
 
 Item {
     id: root
+    objectName: "oshelf-thumbnail"
     property url source
     property bool failed: false
     property bool ready: false
@@ -13,32 +13,44 @@ Item {
     property bool quiet: false
     implicitWidth: 64
     implicitHeight: 64
-    Image {
+    onSourceChanged: reload.restart()
+    onWidthChanged: reload.restart()
+    onHeightChanged: reload.restart()
+    onRadiusChanged: pic.requestPaint()
+    onRoundedChanged: pic.requestPaint()
+    Timer { id: reload; interval: 60; onTriggered: pic.load() }
+    Canvas {
         id: pic
         anchors.fill: parent
-        asynchronous: true
-        fillMode: Image.PreserveAspectFit
-        source: root.source
-        sourceSize: Qt.size(Math.round(root.width), Math.round(root.height))
-        layer.enabled: root.rounded
-        layer.effect: MultiEffect {
-            maskSource: mask
+        property url loadedSource
+        function load() {
+            if (!available) return;
+            if (loadedSource.toString()) unloadImage(loadedSource);
+            loadedSource = root.source;
+            root.ready = false; root.failed = false;
+            if (loadedSource.toString())
+                loadImage(loadedSource, Qt.size(Math.max(1, Math.min(1024, width)), Math.max(1, Math.min(1024, height))));
+            requestPaint();
         }
-        onStatusChanged: {
-            if (status === Image.Ready) {
-                root.ready = true;
-                root.failed = false;
-            } else if (status === Image.Error) {
-                root.failed = true;
-                root.ready = false;
+        onAvailableChanged: if (available) load()
+        onImageLoaded: requestPaint()
+        onPaint: {
+            var c = getContext("2d");
+            c.reset();
+            if (!loadedSource.toString()) return;
+            root.failed = isImageError(loadedSource);
+            root.ready = isImageLoaded(loadedSource);
+            if (!root.ready) return;
+            // Canvas reports failures without QQuickImage logging the source URL.
+            var pixels = c.createImageData(loadedSource.toString());
+            if (!pixels || !pixels.width || !pixels.height) { root.ready = false; root.failed = true; return; }
+            var ratio = Math.min(width / pixels.width, height / pixels.height);
+            var w = pixels.width * ratio, h = pixels.height * ratio;
+            if (root.rounded) {
+                c.beginPath(); c.roundedRect(0, 0, width, height, root.radius, root.radius); c.clip();
             }
+            c.drawImage(loadedSource, (width - w) / 2, (height - h) / 2, w, h);
         }
-    }
-    Rectangle {
-        id: mask
-        anchors.fill: parent
-        radius: root.radius
-        visible: false
     }
     Rectangle {
         anchors.fill: parent

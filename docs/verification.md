@@ -57,6 +57,44 @@ Drag lifetime failures. Its queued QDrag operation survives destruction of the
 QML caller, cancels on unload, and keeps MIME data alive for Wayland's deferred
 reads. Regression tests keep this lifecycle in scope.
 
+## Workflow redesign checks (10 September 2026)
+
+`make check` passes after the redesign. Run `node tests/workflow.mjs` in a Wayland
+session for an isolated Quickshell check of undo after removal and clear, byte
+accounting, drag-time undo blocking, accepted/rejected drop recovery behavior,
+case-insensitive multiword search, keep-open behavior, and explicit collapse.
+It leaves the installed plugin untouched and does not move the pointer. An optional
+output filename captures the shelf with synthetic snippets and a documentation
+link: `node tests/workflow.mjs /tmp/oshelf-review.png`.
+
+The workflow check also loads and saves preferences in a temporary file, verifies
+all three panel placements, tests numeric bounds and monitor fitting, and opens
+the settings UI. `make check` includes malformed-preference and range tests.
+Capture layouts with `node tests/workflow.mjs /tmp/oshelf-bottom.png bottom` or
+`node tests/workflow.mjs /tmp/oshelf-settings.png settings`.
+
+The opt-in pointer test now supports `OSHELF_TEST_PLACEMENT=left|right|bottom`.
+Run `node tests/live.mjs build/tests --hover` for dwell and close behavior. It
+checks short edge crossings, movement resetting steady dwell, returning before
+auto-close, delayed collapse, and positions outside the activation zone. These
+checks passed at all three edges on the live single-monitor Wayland session.
+
+The complete native suite passed with left placement, including all payload types,
+missing references, workspace changes, reordering, cancellation, and reload during
+an active drag. Right and bottom transfers and lifecycle checks also completed;
+the initial runs exposed thumbnail logging/rendering regressions that were then
+fixed. The focused right-side image suite passed afterward, including assertions
+that a valid thumbnail renders and malformed data shows a fallback without content
+appearing in the shell log. Browser/GTK and multi-monitor coverage remains open.
+
+## Website checks
+
+`tests/site.mjs` passed in Chromium at desktop, tablet (768 px), and phone (390 px)
+widths. It exercises real browser drag-in/drag-out, button delivery, retained cards,
+placement, guided playback, collapsed focus behavior, and reduced motion, with no
+JavaScript exceptions. Desktop and mobile screenshots were visually reviewed.
+The page has no third-party fonts, scripts, telemetry, or required build step.
+
 ## Remaining compatibility coverage
 
 The automated receiver is a separate Qt Widgets process. Real browser image

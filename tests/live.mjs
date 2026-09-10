@@ -15,6 +15,10 @@ const monitors = JSON.parse(run('hyprctl', ['-j', 'monitors']));
 assert.equal(monitors.length, 1, 'Live driver currently requires one monitor');
 const monitor = monitors[0];
 assert.equal(monitor.transform, 0, 'Live driver requires an unrotated monitor');
+assert.equal(monitor.x, 0, 'Live driver requires monitor origin 0,0');
+assert.equal(monitor.y, 0, 'Live driver requires monitor origin 0,0');
+const placement = process.env.OSHELF_TEST_PLACEMENT || 'right';
+assert.ok(['left', 'right', 'bottom'].includes(placement));
 const width = Math.round(monitor.width / monitor.scale);
 const height = Math.round(monitor.height / monitor.scale);
 const originalWorkspace = JSON.parse(run('hyprctl', ['-j', 'activeworkspace'])).id;
@@ -32,23 +36,39 @@ import Quickshell
 import Quickshell.Io
 import "file:${root}/components" as Shelf
 ShellRoot {
-    Shelf.ShelfStore { id: store }
+    Shelf.ShelfStore { id: store; preferences.path: "" }
     Shelf.ShelfWindow { id: shelf; store: store }
+    Component.onCompleted: store.preferences.apply({placement: ${JSON.stringify(placement)}})
     function cards(item) {
         var found = [];
-        if (item.objectName === "oshelf-card") {
+        if (item.objectName === "oshelf-card" && item.visible) {
             var point = item.mapToItem(shelf.contentItem, 0, 0);
             found.push({id: item.entry.id, x: shelf.screen.width - shelf.width + point.x, y: shelf.screen.height - shelf.height + point.y, width: item.width, height: item.height});
         }
         if (item.children) for (var child of item.children) found = found.concat(cards(child));
         return found;
     }
+    function rect(item, name) {
+        if (item.objectName === name) {
+            var point = item.mapToItem(shelf.contentItem, 0, 0);
+            return {x: shelf.screen.width - shelf.width + point.x, y: shelf.screen.height - shelf.height + point.y, width: item.width, height: item.height};
+        }
+        for (var child of item.children || []) { var found = rect(child, name); if (found) return found; }
+        return null;
+    }
+    function preview(item, field) {
+        if (item.objectName === "oshelf-thumbnail" && item.visible && item[field]) return true;
+        for (var child of item.children || []) { if (preview(child, field)) return true; }
+        return false;
+    }
     IpcHandler {
         target: "test"
         function state(): string { return JSON.stringify({expanded: shelf.expanded, engaged: shelf.engaged, count: store.items.length, message: store.message,
-            dragging: store.draggingId, cards: cards(shelf.contentItem), ids: store.items.map(i => i.id), kinds: store.items.map(i => i.kind), missing: store.items.some(i => i.missing)}); }
+            dragging: store.draggingId, previewReady: preview(shelf.contentItem, "ready"), previewFailed: preview(shelf.contentItem, "failed"), cards: cards(shelf.contentItem), edge: rect(shelf.contentItem, "oshelf-edge"), panel: rect(shelf.contentItem, "oshelf-surface"), ids: store.items.map(i => i.id), kinds: store.items.map(i => i.kind), missing: store.items.some(i => i.missing)}); }
         function clear(): void { store.clear(); }
         function reveal(): void { shelf.reveal(); }
+        function refresh(): void { store.refresh(); }
+        function hide(): void { shelf.collapse(); }
     }
 }`);
 const ipc = method => run('quickshell', ['ipc', '-p', directory, 'call', '--', 'test', method]);
@@ -76,11 +96,36 @@ try {
     shell = spawn('quickshell', ['-p', directory]);
     for (const stream of [shell.stdout, shell.stderr]) stream.on('data', b => { shellOutput += b; });
     await until(() => state().count === 0, 'Shelf failed to load');
+    if (process.argv[3] === '--hover') {
+        const edge = state().edge;
+        const ex = Math.round(edge.x + edge.width / 2), ey = Math.round(edge.y + edge.height / 2);
+        const outside = placement === 'bottom' ? {x: width / 2, y: 80} : {x: width / 2, y: height / 2};
+        pointer(`move ${outside.x} ${outside.y}\nwait 200`);
+        ipc('hide');
+        pointer(`move ${ex} ${ey}\nwait 100`);
+        assert.equal(state().expanded, false, 'Brief edge crossing must not open');
+        pointer(`move ${ex + (placement === 'bottom' ? 12 : 0)} ${ey + (placement === 'bottom' ? 0 : 12)}\nwait 180`);
+        assert.equal(state().expanded, false, 'Moving inside zone must restart steady dwell');
+        await until(() => state().expanded, 'Steady hover did not open shelf');
+        const panel = state().panel;
+        const inside = {x: Math.round(panel.x + panel.width / 2), y: Math.round(panel.y + panel.height / 2)};
+        pointer(`move ${inside.x} ${inside.y}\nwait 300\nmove ${outside.x} ${outside.y}\nwait 200`);
+        assert.equal(state().expanded, true, 'Close delay must allow returning');
+        pointer(`move ${inside.x} ${inside.y}\nwait 850`);
+        assert.equal(state().expanded, true, 'Returning must cancel close timer');
+        pointer(`move ${outside.x} ${outside.y}\nwait 950`);
+        await until(() => !state().expanded, 'Leaving must close shelf');
+        const missed = placement === 'bottom' ? {x: 40, y: height - 2} : {x: placement === 'left' ? 2 : width - 2, y: 45};
+        pointer(`move ${missed.x} ${missed.y}\nwait 600`);
+        assert.equal(state().expanded, false, 'Edge outside activation zone must not open');
+        console.log(`PASS ${placement}: steady hover, delayed opening, return grace, auto close, bounded activation zone`);
+    }
     const file = path.join(directory, 'reference $(literal) 雪.txt');
     fs.writeFileSync(file, 'Reference test');
     for (const [name, args, kind] of [
         ['text', [], 'text'], ['folder', [directory], 'folder'], ['file', [file], 'file'],
         ['bundle', [file, directory], 'file'], ['image', ['--image'], 'image'], ['bad-image', ['--bad-image'], 'image'], ['url', ['--url'], 'url']]) {
+        if (process.argv[3] === '--hover') continue;
         if (process.argv[3] === '--lifecycle' && name !== 'url') continue;
         if (process.argv[3] === '--images' && !name.includes('image')) continue;
         ipc('clear');
@@ -95,9 +140,11 @@ try {
         }, 'Test source not visible');
         await delay(500);
         client = JSON.parse(run('hyprctl', ['-j', 'clients'])).find(w => w.pid === source.pid);
-        const x = Math.round(Math.min(client.at[0] + client.size[0] / 3, width - 440));
-        const y = Math.round(height / 2);
-        pointer(`move ${x - 60} ${y - 30}\nwait 150\nmove ${x} ${y}\nwait 200\ndown\nwait 100\nmove ${x + 24} ${y}\nwait 200\nmove ${width - 3} ${y}\nwait 500\nmove ${width - 190} ${y}\nwait 200\nup\nwait 200`);
+        const x = Math.round(placement === 'left' ? Math.max(client.at[0] + client.size[0] * 0.65, 460) : Math.min(client.at[0] + client.size[0] / 3, width - 440));
+        const y = Math.round(placement === 'bottom' ? Math.max(client.at[1] + 60, 180) : height / 2);
+        const edge = state().edge;
+        const ex = Math.round(edge.x + edge.width / 2), ey = Math.round(edge.y + edge.height / 2);
+        pointer(`move ${x - 60} ${y - 30}\nwait 150\nmove ${x} ${y}\nwait 200\ndown\nwait 100\nmove ${x + 24} ${y}\nwait 200\nmove ${ex} ${ey}\nwait 500\nup\nwait 200`);
         await until(() => state().count === 1 && state().kinds[0] === kind, `${name} capture failed at ${x},${y}: ${JSON.stringify(state())}`);
         if (name === 'text') {
             run('hyprctl', ['dispatch', `hl.dsp.focus({workspace="${testWorkspace}"})`]);
@@ -109,31 +156,36 @@ try {
         }
         ipc('reveal');
         await delay(300);
+        if (name === 'image') await until(() => state().previewReady, 'Valid image thumbnail did not render');
+        if (name === 'bad-image') await until(() => state().previewFailed, 'Invalid image did not show its fallback');
         if (name === 'image') {
             pointer(`move ${x} ${y}\nwait 100`);
             ipc('reveal'); await delay(300);
-            run('grim', ['-g', `${width - 392},${Math.round(height / 2 - 220)} 392x440`, path.join(root, 'docs', 'shelf.png')]);
+            const panel = state().panel;
+            run('grim', ['-g', `${Math.round(panel.x)},${Math.round(panel.y)} ${Math.round(panel.width)}x${Math.round(panel.height)}`, path.join(directory, 'shelf.png')]);
         }
-        pointer(`move ${width - 220} ${y}\nwait 150\ndown\nwait 100\nmove ${width - 250} ${y}\nwait 150\nmove ${width - 270} ${y}\nwait 200\nmove ${x} ${y}\nwait 300\nup\nwait 200`);
+        const pickup = state().cards[0];
+        const px = Math.round(pickup.x + 70), py = Math.round(pickup.y + pickup.height / 2);
+        pointer(`move ${px} ${py}\nwait 150\ndown\nwait 100\nmove ${px + 22} ${py}\nwait 150\nmove ${px + 42} ${py}\nwait 200\nmove ${x} ${y}\nwait 300\nup\nwait 200`);
         await until(() => sourceOutput.includes('RECEIVED text=1 binary=1') && sourceOutput.includes('EXACT 1'), `${name} round trip failed`);
         assert.equal(state().count, 1, 'Pickup must retain the card');
         await until(() => state().dragging === '', 'Native drag state must finish');
         if (name === 'file') {
-            fs.renameSync(file, file + '.moved'); ipc('reveal');
+            fs.renameSync(file, file + '.moved'); ipc('refresh');
             await until(() => state().missing, 'Missing reference was not detected');
             fs.renameSync(file + '.moved', file);
         }
         console.log(`PASS ${name}: native round trip; original binary bytes preserved`);
         if (name === 'url') {
             // Add a second real URL offer, then reorder the two native drag sources.
-            pointer(`move ${x - 60} ${y - 30}\nwait 150\nmove ${x} ${y}\nwait 150\ndown\nwait 100\nmove ${x + 24} ${y}\nwait 150\nmove ${width - 3} ${y}\nwait 400\nmove ${width - 190} ${y - 100}\nwait 150\nup\nwait 250`);
+            pointer(`move ${x - 60} ${y - 30}\nwait 150\nmove ${x} ${y}\nwait 150\ndown\nwait 100\nmove ${x + 24} ${y}\nwait 150\nmove ${ex} ${ey}\nwait 400\nup\nwait 250`);
             await until(() => state().count === 2, 'Second URL failed');
             ipc('reveal'); await delay(300);
             const before = state().ids;
-            const cards = state().cards.sort((a, b) => a.y - b.y);
+            const cards = state().cards.sort((a, b) => placement === 'bottom' ? a.x - b.x : a.y - b.y);
             const from = cards[1], to = cards[0];
             const cx = Math.round(from.x + 100), cy = Math.round(from.y + from.height / 2);
-            pointer(`move ${cx} ${cy}\nwait 150\ndown\nmove ${cx + 20} ${cy}\nwait 100\nmove ${cx + 40} ${cy}\nwait 150\nmove ${cx} ${Math.round(to.y + to.height / 2)}\nwait 250\nup\nwait 250`);
+            pointer(`move ${cx} ${cy}\nwait 150\ndown\nmove ${cx + 20} ${cy}\nwait 100\nmove ${cx + 40} ${cy}\nwait 150\nmove ${Math.round(to.x + 100)} ${Math.round(to.y + to.height / 2)}\nwait 250\nup\nwait 250`);
             await until(() => state().ids[0] === before[1] && state().dragging === '', 'Native reorder failed');
             console.log('PASS native reorder: stable card identity');
             ipc('reveal'); await delay(300);
